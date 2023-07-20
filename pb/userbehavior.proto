@@ -1,0 +1,12 @@
+syntax="proto2";
+package userbehavior;
+
+message UserBehavior {
+  optional uint64 searchtime                          = 1; //用户搜索时间
+  optional string query                               = 2; //用户搜索的query 
+  optional uint32 platform                            = 3; //移动或者PC平台
+}
+
+message UserOaidFeature {
+  optional  string oaid_fea       = 1; //用户oaid对应的特征信息
+}

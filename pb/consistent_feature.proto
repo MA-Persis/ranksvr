@@ -1,0 +1,137 @@
+syntax="proto2";
+package consfea;
+
+message PreAndCurQuery
+{
+  optional string pre1_query                                     = 1;
+  optional string query_text                                     = 2;
+}
+
+message AdQueryTerm
+{
+  optional uint32 ad_query_term_num                              = 1;
+  optional uint32 ad_query_term_match_query_num                  = 2;
+}
+
+message AsQueryTerm
+{
+  optional uint32 as_query_term_num                              = 1;
+  optional uint32 as_query_term_match_query_num                  = 2;
+}
+
+message TopClickQueryTerm
+{
+  optional uint32 top_click_query_term_num                       = 1;
+  optional uint32 top_click_query_term_match_bidword_num         = 2;
+}
+
+message HisQueryTerm
+{
+  optional uint32 his_query_term_num                             = 1;
+  optional uint32 his_query_term_match_bidword_num               = 2;
+}
+
+message Pre1Bidword
+{
+  optional string pre1_bidword_has_clk                           = 1;
+  optional string bidword_text                                   = 2;
+}
+
+
+message HisQueryTermAd
+{
+  optional string key                                            = 1;
+  optional uint32 his_query_term_num_value                       = 2;
+  optional uint32 his_query_term_match_bidword_num_value         = 3;
+}
+
+message CurAdClickedAd
+{
+  optional string key                                            = 1;
+  optional string value                                          = 2;
+}
+
+message CurAdHistoryAd
+{
+  optional string key                                            = 1;
+  repeated string value                                          = 2;
+}
+
+message LastClickQueryTermMatchTitleNumAd
+{
+  optional string key                                            = 1;
+  optional uint32 value                                          = 2;
+}
+
+message Pre1BidwordAd
+{
+  optional string key                                            = 1;
+  optional string pre1_bidword_has_clk_value                     = 2;
+  optional string bidword_text_value                             = 3;
+}
+
+message TopClickQueryTermAd
+{
+  optional string key                                            = 1;
+  optional uint32 top_click_query_term_num_value                 = 2;
+  optional uint32 top_click_query_term_match_bidword_num_value   = 3;
+}
+
+message CurAdStyleHistoryAd
+{
+  optional string key                                            = 1;
+  repeated string value                                          = 2;
+}
+
+message CurAdComponentHistoryAd
+{
+  optional string key                                            = 1;
+  repeated string value                                          = 2;
+}
+
+message ConsFeaQuery {
+  repeated string pre5_query_char                                                     = 1;
+  optional string pre1_query                                                          = 2;
+  optional PreAndCurQuery pre_and_cur_query                                           = 3;
+  optional string pre1_ad_clk_id                                                      = 4;
+  optional string pre1_ad_clk_span                                                    = 5;
+  optional string pre1_search_gap                                                     = 6; 
+  optional AdQueryTerm ad_query_term                                                  = 7;
+  optional AsQueryTerm as_query_term                                                  = 8;
+  repeated uint32 ad_query_match_query                                                = 9;
+  repeated uint32 as_query_match_query                                                = 10;
+  repeated string history_10_query                                                    = 11;
+  optional HisQueryTerm his_query_term                                                = 12; 
+  optional string cur_ad_clicked                                                      = 13;
+  repeated string cur_ad_history                                                      = 14;
+  optional string ad_show_clk_num                                                     = 15;
+  repeated string ad_pos_clk                                                          = 16;
+  repeated uint32 last_click_query                                                    = 17;
+  optional uint32 last_click_query_term_match_query_num                               = 18;
+  optional uint32 last_click_query_term_match_title_num                               = 19;   
+  optional string pre1_ad_clk_gap                                                     = 20;
+  optional Pre1Bidword pre1_bidword                                                   = 21;
+  optional TopClickQueryTerm top_click_query_term                                     = 22;
+  repeated string clk_ad_style_info_history                                           = 23;
+  repeated string cur_ad_style_history                                                = 24;
+  repeated string cur_ad_component_history                                            = 25;
+}
+
+message ConsFeaAd {
+  repeated HisQueryTermAd his_query_term_ad                                           = 1;
+  repeated CurAdClickedAd cur_ad_clicked_ad                                           = 2;
+  repeated CurAdHistoryAd cur_ad_history_ad                                           = 3;
+  repeated LastClickQueryTermMatchTitleNumAd last_click_query_term_match_title_num_ad = 4;
+  repeated Pre1BidwordAd pre1_bidword_ad                                              = 5;
+  repeated TopClickQueryTermAd top_click_query_term_ad                                = 6;
+  repeated CurAdStyleHistoryAd cur_ad_style_history_ad                                = 7;
+  repeated CurAdComponentHistoryAd cur_ad_component_history_ad                        = 8;
+}
+
+message ConsFeaFull {
+  optional string pvid                                                               = 1;
+  optional string query                                                              = 2;
+  optional ConsFeaQuery cons_fea_query                                               = 3; // Query粒度特征一致性优化
+  optional ConsFeaAd cons_fea_ad                                                     = 4; // Ad粒度特征一致性优化
+  optional string platform                                                           = 5;
+}

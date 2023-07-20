@@ -1,0 +1,4 @@
+/home/mashen/rank-git/ranksvr/build/CMakeFiles/rank_client.dir
+/home/mashen/rank-git/ranksvr/build/CMakeFiles/rank_server.dir
+/home/mashen/rank-git/ranksvr/build/CMakeFiles/edit_cache.dir
+/home/mashen/rank-git/ranksvr/build/CMakeFiles/rebuild_cache.dir

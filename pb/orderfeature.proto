@@ -1,0 +1,15 @@
+syntax="proto2";
+package orderfeature;
+
+message OrderInfoFeature {
+  optional string click_custIds           = 1;
+  optional string click_ocpcIds           = 2;
+  optional string click_channels          = 3;
+  optional string order_custIds           = 4;
+  optional string order_ocpcIds           = 5;
+  optional string order_channels          = 6;
+  optional string day60_click_order_cross = 7;
+  optional string day30_click_order_cross = 8;
+  optional string day7_click_order_cross  = 9;
+  optional string day1_click_order_cross  = 10;
+}

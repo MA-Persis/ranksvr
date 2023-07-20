@@ -1,0 +1,6 @@
+find_path(LEVELDB_INCLUDE_PATH NAMES leveldb/db.h)
+find_library(LEVELDB_LIB NAMES leveldb)
+
+if (LEVELDB_INCLUDE_PATH AND LEVELDB_LIB)
+  set(LEVELDB_FOUND TRUE)
+endif()

@@ -1,0 +1,6 @@
+# Hashes of file build rules.
+bc9c23eebec978eec60060f24fc2a82e ../pb/adinfo.pb.h
+f69e86093d5072bc48a46b6e52f3823b ../pb/consistent_feature.pb.h
+6a8f140e519056f48b30eebc54e1c363 ../pb/echo.pb.h
+3d2e7aeac19c6a66ab829a19ba089199 ../pb/orderfeature.pb.h
+0324102076d5b1082c4f7c977bbc9b0d ../pb/userbehavior.pb.h

@@ -1,0 +1,102 @@
+// Licensed to the Apache Software Foundation (ASF) under one
+// or more contributor license agreements.  See the NOTICE file
+// distributed with this work for additional information
+// regarding copyright ownership.  The ASF licenses this file
+// to you under the Apache License, Version 2.0 (the
+// "License"); you may not use this file except in compliance
+// with the License.  You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing,
+// software distributed under the License is distributed on an
+// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+// KIND, either express or implied.  See the License for the
+// specific language governing permissions and limitations
+// under the License.
+
+syntax="proto2";
+
+import "adinfo.proto";
+import "orderfeature.proto";
+import "userbehavior.proto";
+import "consistent_feature.proto";
+
+package example;
+
+option cc_generic_services = true;
+
+message EchoRequest {
+      required string message = 1;
+};
+
+message EchoResponse {
+      required string message = 1;
+};
+
+service EchoService {
+      rpc Echo(EchoRequest) returns (EchoResponse);
+};
+
+message AdFeatureKey {
+    optional uint64 sign = 1 [ default = 0];
+    optional uint32 slot = 2;
+}
+
+message AdFeatureValue {
+    optional float show = 1 [ default = 0 ];
+    optional float clk = 2 [ default = 0 ];
+    optional float weight = 3 [ default = 0 ];
+    repeated float fm_array = 4 [ packed = true ];
+    optional float dwlr_w = 5 [ default = 0 ];
+}
+
+message AdCVRFeatureValue {
+    repeated float emb_w = 1 [ packed = true ];
+}
+
+message AdInfo4Rank {
+    optional  adinfo.AdInfo    adinfo       = 1;
+    optional  double           rankscore    = 2;   // rank回填
+    optional  double           ctr          = 3;   // rank回填
+    optional  uint64           adid         = 4;  // 广告的id
+    repeated  AdFeatureValue   feature_values    = 5;  // 每个广告特征对应的权重
+    repeated  AdFeatureKey     feature_keys      = 6;  // 每个广告的特征key
+    optional  double           cvr               = 7;  // rank回填,统计cvr,作为特征
+    repeated  AdCVRFeatureValue cvr_feature_values = 8; // cvr emb feature
+    repeated  AdFeatureKey     cvr_feature_keys      = 9;  // cvr每个广告的特征key
+}
+
+message VisitInfo {
+    optional  uint32  province      = 1; //访问省份id
+    optional  string  citystr       = 2; //访问城市字面
+    optional  uint32  city          = 3; //访问城市id
+    optional  string  pvid          = 4; //请求id
+    optional  string  oaid          = 5; //oaid
+    optional  userbehavior.UserOaidFeature  oaid_fea = 6;    // query 级别用户的oaid相关特征
+    optional  orderfeature.OrderInfoFeature order_feature = 7; //订单特征
+}
+
+message QueryInfo {
+    optional  bytes  query = 1;
+    repeated  AdInfo4Rank  adlist = 2;
+    optional  bool is_cons_fea = 3;
+    optional  consfea.ConsFeaFull cons_fea_full = 4;
+}
+
+message RankStruct {
+    optional  VisitInfo   visitinfo = 1;
+    repeated  QueryInfo   querylist   = 2;
+}
+
+message RankRequest {
+  repeated RankStruct rank_struct = 1;
+}
+
+message RankResponse {
+  optional string rank_response = 1;
+}
+
+service RankService {
+      rpc Rank(RankRequest) returns (RankResponse);
+};

@@ -1,0 +1,6 @@
+find_path(GFLAGS_INCLUDE_PATH gflags/gflags.h)
+find_library(GFLAGS_LIBRARY NAMES gflags)
+
+if(GFLAGS_INCLUDE_PATH AND GFLAGS_LIBRARY)
+  set(GFLAGS_FOUND TRUE)
+endif()
