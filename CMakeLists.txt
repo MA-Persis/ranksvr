@@ -105,8 +105,8 @@ set(CLIENT_SOURCES
 
 set(SERVER_SOURCES
   main/server.cpp
-  main/rs_service.cpp
   concurrent/rank_thread.cpp
+  concurrent/rank_pool.cpp
   conf/rs_conf.cpp
   base/wait_group.cpp
   ${PROTO_SRCS}

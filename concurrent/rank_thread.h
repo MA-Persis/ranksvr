@@ -15,23 +15,34 @@
 
 #include "pb/echo.pb.h"
 
+#include "request/request.h"
+
+#include "concurrent/rank_pool.h"
+
+using qihoo::ad::ranking::iRequest;
+
 namespace rs {
 
 static const int thread_numbers = 10;
 
 struct TaskInfo {
-  example::RankRequest* request;
-  WaitGroup *wg;
+  example::RankStruct* rank_struct;
+  example::RankRequest* rank_request;
+  iRequest* irequest;
 
-  TaskInfo(example::RankRequest* _request,
-           WaitGroup *_wg
+  TaskInfo(
+           example::RankStruct* _rank_struct,
+           example::RankRequest* _rank_request,
+           iRequest* _irequest
           ) : 
-          request(_request),
-          wg(_wg) {
+          rank_struct(_rank_struct),
+          rank_request(_rank_request),
+          irequest(_irequest) {
   }
   TaskInfo() : 
-          request(nullptr), 
-          wg(nullptr) {
+          rank_struct(nullptr),
+          rank_request(nullptr), 
+          irequest(nullptr) {
   }
 };
 
@@ -60,11 +71,7 @@ public:
 
   int init();
 
-  static void* run(void* p);
-
-  static int push(TaskInfo task);
-
-  void handle();
+  void process(example::RankStruct* rankstruct, example::RankRequest* rankrequest, iRequest* irequest);
 
 public:
   static std::queue<TaskInfo> task_queue;
@@ -72,7 +79,6 @@ public:
   static pthread_cond_t m_cond;
 
 private:
-  void process(example::RankRequest* request);
   int parallel_online_rank(example::RankStruct* rank_struct);
   void online_rank_extract_fea_part(example::RankStruct* rank_struct);
   void request_ms();

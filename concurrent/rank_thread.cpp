@@ -11,10 +11,18 @@ std::queue<TaskInfo> RankThread::task_queue;
 pthread_mutex_t RankThread::m_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t RankThread::m_cond = PTHREAD_COND_INITIALIZER;
 
-void* RankThread::run(void* p) {
-  RankThread* rt = static_cast<RankThread*>(p);
-  rt->handle();
-  return nullptr;
+static void* rank_process(void* args) {
+    TaskInfo* task_info = static_cast<TaskInfo*>(args);
+
+    RankThread* rank_thread = RankPool::instance().pop_rank_thread();
+
+    rank_thread->process(task_info->rank_struct,
+                         task_info->rank_request,
+                         task_info->irequest);
+
+    RankPool::instance().push_rank_thread(rank_thread);
+
+    return nullptr;
 }
 
 int RankThread::init() {
@@ -43,40 +51,7 @@ int RankThread::init() {
   return 0;
 }
 
-void RankThread::handle() {
-  while (true) {
-    pthread_mutex_lock(&m_mutex);
-    while (task_queue.empty()) {
-      // wait 20ms
-      struct timeval tv;
-      long long absmsec;
-      gettimeofday(&tv, NULL);
-      absmsec = tv.tv_sec * 1000ll + tv.tv_usec / 1000ll;
-      absmsec += 20ll;
-
-      struct timespec abstime;
-      abstime.tv_sec = absmsec / 1000ll;
-      abstime.tv_nsec = (absmsec % 1000ll) * 1000000ll;
-
-      int ret = pthread_cond_timedwait(&m_cond, &m_mutex, &abstime);
-      if (ret != 0 && ret != ETIMEDOUT) {
-        printf("pthread_cond_timedwait ret: %d\n", ret);
-      }
-    }
-    if (!task_queue.empty()) {
-      TaskInfo task = task_queue.front();
-      task_queue.pop();
-      pthread_mutex_unlock(&m_mutex);
-      process(task.request);
-      task.wg->done();
-    } else {
-      printf("input queue is emtpy\n");
-      pthread_mutex_unlock(&m_mutex);
-    }
-  }
-}
-
-void RankThread::process(example::RankRequest* request) {
+void RankThread::process(example::RankStruct* rankstruct, example::RankRequest* request, iRequest* irequest) {
   example::RankStruct* rank_struct = request->mutable_rank_struct(0);
   parallel_online_rank(rank_struct);
 }
@@ -112,22 +87,6 @@ void RankThread::online_rank_compute_q(example::RankStruct* rank_struct) {
     LOG(FATAL) << "OnlineRank DoRank failed";
   }
 }
- 
-int RankThread::push(TaskInfo task) {
-  pthread_mutex_lock(&m_mutex);
-  task_queue.push(task);
-  pthread_cond_signal(&m_cond);
-
-  size_t queue_size = task_queue.size();
-  pthread_mutex_unlock(&m_mutex);
-
-  if (queue_size > 50) {
-    LOG(INFO) << "input queue is too big:" << queue_size;
-  }
-
-  return 0;
-}
-
 
 void RankThreadManager::process_request(example::RankRequest* request) {
   // std::string request_json;
@@ -157,14 +116,26 @@ int RankThreadManager::parallel_online_rank(example::RankRequest* request) {
   std::vector<example::RankStruct*> parts;
   split_req(&parts, *request);
 
-  int part_size = parts.size();
+  int parts_size = parts.size();
   qihoo::ad::TimeDelta tasks_process_timer;
-  _wg.clear();
-  _wg.add(part_size);
-  for (size_t i = 0; i < part_size; i++) {
-    RankThread::push(TaskInfo(request, &_wg));
+
+  std::vector<bthread_t> bids(parts_size);
+
+  TaskInfo task_info[parts_size];
+  iRequest irequest[parts_size];
+
+  for (int i = 0; i < parts_size; i++) {
+    task_info[i] = TaskInfo(parts[i], request, &irequest[i]);
+    if (bthread_start_background(&bids[i], NULL, rank_process, &task_info[i]) != 0) {
+        LOG(FATAL) << "fail to create bthread to process rank";
+        return -1;
+    }
   }
-  _wg.wait();
+
+  for (int i = 0; i < parts_size; i++) {
+      bthread_join(bids[i], NULL);
+  }
+
   // LOG(INFO) << "tasks_process_timer: " << tasks_process_timer.GetSysTimeDelta();
 
   merge_rsp(&parts, *request);
