@@ -91,14 +91,6 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-
-    rs::RsService& rs_service = rs::RsService::GetRsService();
-    //rs_service.Init();
-    if (-1 == rs_service.Start()) {
-        LOG(ERROR) << "RsService start failed!";
-        return -1;
-    }
-
     // Generally you only need one Server.
     brpc::Server server;
 
@@ -135,7 +127,6 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    rs_service.Join();
     // Wait until Ctrl-C is pressed, then Stop() and Join() the server.
     server.RunUntilAskedToQuit();
     return 0;
