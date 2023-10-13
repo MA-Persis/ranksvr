@@ -21,12 +21,13 @@
 #include <butil/logging.h>
 #include <butil/time.h>
 #include <brpc/channel.h>
+#include <brpc/nshead_message.h>
+#include <brpc/policy/snappy_compress.h>
 #include "pb/echo.pb.h"
 
 DEFINE_string(attachment, "", "Carry this along with requests");
-DEFINE_string(protocol, "baidu_std", "Protocol type. Defined in src/brpc/options.proto");
 DEFINE_string(connection_type, "", "Connection type. Available values: single, pooled, short");
-DEFINE_string(server, "0.0.0.0:8000", "IP Address of server");
+DEFINE_string(server, "0.0.0.0:9999", "IP Address of server");
 DEFINE_string(load_balancer, "", "The algorithm for load balancing");
 DEFINE_int32(timeout_ms, 100, "RPC timeout in milliseconds");
 DEFINE_int32(max_retry, 3, "Max retries(not including the first RPC)"); 
@@ -68,7 +69,7 @@ int main(int argc, char* argv[]) {
     
     // Initialize the channel, NULL means using default options.
     brpc::ChannelOptions options;
-    options.protocol = FLAGS_protocol;
+    options.protocol = brpc::PROTOCOL_NSHEAD;
     options.connection_type = FLAGS_connection_type;
     options.timeout_ms = FLAGS_timeout_ms/*milliseconds*/;
     options.max_retry = FLAGS_max_retry;
@@ -77,33 +78,42 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    // Normally, you should not call a Channel directly, but instead construct
-    // a stub Service wrapping it. stub can be shared by all threads as well.
-    example::RankService_Stub stub(&channel);
-
     // Send a request and wait for the response every 1 second.
     int log_id = 0;
     while (!brpc::IsAskedToQuit()) {
         // We will receive response synchronously, safe to put variables
         // on stack.
-        example::RankRequest request;
-        example::RankResponse response;
+        example::RankRequest rank_request;
+        example::RankResponse rank_response;
+        brpc::NsheadMessage request;
+        brpc::NsheadMessage response;
         brpc::Controller cntl;
 
-        random_set_values(request);
+        random_set_values(rank_request);
+
+        if (!brpc::policy::SnappyCompress(rank_request, &request.body)) {
+            printf("Requresponseest snappy compress failed\n");
+            return -1;
+        }
 
         cntl.set_log_id(log_id ++);  // set by user
         // Set attachment which is wired to network directly instead of 
         // being serialized into protobuf messages.
         cntl.request_attachment().append(FLAGS_attachment);
 
-        // Because `done'(last parameter) is NULL, this function waits until
-        // the response comes back or error occurs(including timedout).
-        stub.Rank(&cntl, &request, &response, NULL);
+
+        channel.CallMethod(NULL, &cntl, &request, &response, NULL);
+
+        rank_request.Clear();
+        if (!brpc::policy::SnappyDecompress(response.body, &rank_request)) {
+            printf("Request snappy decompress failed\n");
+            return -1;
+        }
+
         if (!cntl.Failed()) {
             LOG(INFO) << "Received response from " << cntl.remote_side()
                 << " to " << cntl.local_side()
-                << ": " << response.rank_response() << " (attached="
+                << ": " << rank_request.Utf8DebugString() << " (attached="
                 << cntl.response_attachment() << ")"
                 << " latency=" << cntl.latency_us() << "us";
         } else {

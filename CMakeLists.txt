@@ -99,7 +99,7 @@ list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -fPIC")
 message(STATUS "CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 set(CLIENT_SOURCES
-  main/multi_client.cpp 
+  main/client.cpp 
   ${PROTO_SRCS}
 )
 
