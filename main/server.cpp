@@ -20,43 +20,49 @@
 #include <gflags/gflags.h>
 #include <butil/logging.h>
 #include <brpc/server.h>
+#include <brpc/nshead_service.h>
+#include <brpc/policy/snappy_compress.h>
 
 #include "concurrent/rank_thread.h"
 #include "conf/rs_conf.h"
 #include "main/rs_service.h"
-#include "pb/echo.pb.h"
+// #include "pb/echo.pb.h"
 
 
 DEFINE_bool(echo_attachment, true, "Echo attachment as well");
-DEFINE_int32(port, 8000, "TCP Port of this server");
+DEFINE_int32(port, 9999, "TCP Port of this server");
 DEFINE_string(listen_addr, "", "Server listen address, may be IPV4/IPV6/UDS."
             " If this is set, the flag port will be ignored");
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
              "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(session_local_num, 20, "session local num");
 
-// Your implementation of example::EchoService
-// Notice that implementing brpc::Describable grants the ability to put
-// additional information in /status.
 namespace example {
-class RankServiceImpl : public RankService {
+class RankService0 : public brpc::NsheadService {
 public:
-    RankServiceImpl() {}
-    virtual ~RankServiceImpl() {}
-    virtual void Rank(google::protobuf::RpcController* cntl_base,
-                      const RankRequest* request,
-                      RankResponse* response,
-                      google::protobuf::Closure* done) {
+    void ProcessNsheadRequest(const brpc::Server&,
+                              brpc::Controller* cntl,
+                              const brpc::NsheadMessage& request,
+                              brpc::NsheadMessage* response,
+                              brpc::NsheadClosure* done) {
         // This object helps you to call done->Run() in RAII style. If you need
         // to process the request asynchronously, pass done_guard.release().
         brpc::ClosureGuard done_guard(done);
 
-        brpc::Controller* cntl =
-            static_cast<brpc::Controller*>(cntl_base);
+        RankRequest rank_request;
+        if (!brpc::policy::SnappyDecompress(request.body, &rank_request)) {
+            printf("Request snappy decompress failed\n");
+            return;
+        }
 
         rs::RankThreadManager* sd = static_cast<rs::RankThreadManager*>(cntl->session_local_data());
 
-        sd->process_request(const_cast<example::RankRequest*>(request));
+        sd->process_request(const_cast<example::RankRequest*>(&rank_request));
+
+        if (!brpc::policy::SnappyCompress(rank_request, &response->body)) {
+            printf("Requresponseest snappy compress failed\n");
+            return;
+        }
 
         // The purpose of following logs is to help you to understand
         // how clients interact with servers more intuitively. You should 
@@ -75,7 +81,7 @@ public:
             // being serialized into protobuf messages.
             cntl->response_attachment().append(cntl->request_attachment());
         }
-    }
+    }                                                        
 };
 }  // namespace example
 
@@ -94,18 +100,6 @@ int main(int argc, char* argv[]) {
     // Generally you only need one Server.
     brpc::Server server;
 
-    // Instance of your service.
-    example::RankServiceImpl rank_service_impl;
-
-    // Add the service into server. Notice the second parameter, because the
-    // service is put on stack, we don't want server to delete it, otherwise
-    // use brpc::SERVER_OWNS_SERVICE.
-    if (server.AddService(&rank_service_impl, 
-                          brpc::SERVER_DOESNT_OWN_SERVICE) != 0) {
-        LOG(ERROR) << "Fail to add service";
-        return -1;
-    }
-
     butil::EndPoint point;
     if (!FLAGS_listen_addr.empty()) {
         if (butil::str2endpoint(FLAGS_listen_addr.c_str(), &point) < 0) {
@@ -119,7 +113,8 @@ int main(int argc, char* argv[]) {
     brpc::ServerOptions options;
 
     rs::SessionLocalDataFactory session_local_data_factory;
-    options.idle_timeout_sec = FLAGS_idle_timeout_s;
+
+    options.nshead_service = new example::RankService0();
     options.session_local_data_factory = &session_local_data_factory;
     options.reserved_session_local_data = FLAGS_session_local_num;
     if (server.Start(point, &options) != 0) {
