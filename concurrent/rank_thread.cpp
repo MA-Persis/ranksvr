@@ -1,5 +1,6 @@
 #include "concurrent/rank_thread.h"
 
+#include "base/bvar_record.h"
 #include "conf/rs_conf.h"
 
 #include <json2pb/pb_to_json.h>
@@ -112,7 +113,33 @@ void RankThreadManager::process_request(example::RankRequest* request) {
   parallel_online_rank(request);
 }
 
+#include <math.h>
+
+void RankThreadManager::bvar_test() {
+  example::bvar_record_performance("memcache_get_qps", 1);
+  qihoo::ad::TimeDelta memcache_timer;
+
+  int random = butil::fast_rand_less_than(100);
+
+  float recall = 77.25;
+  const int num = 100;
+  for (int i = 1; i <= num; i++) {
+    if (random < 10) {
+      example::bvar_record_performance("memcache_get_lose", 1);
+      return;
+    }
+  }
+
+  int64_t recall_ratio = round((float)recall/num * 100);
+  std::cout << "recall_ratio: " << recall_ratio << std::endl;
+  example::bvar_record_performance("memcache_get_tm", memcache_timer.GetSysTimeDelta());  
+  example::bvar_record_performance("memcache_get_lose", 0);   
+  example::bvar_record_performance("memcache_get_recall", recall_ratio);
+}
+
 int RankThreadManager::parallel_online_rank(example::RankRequest* request) {
+  bvar_test();
+
   std::vector<example::RankStruct*> parts;
   split_req(&parts, *request);
 

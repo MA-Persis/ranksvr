@@ -120,6 +120,8 @@ private:
   int split_req(std::vector<example::RankStruct*>* out,  example::RankRequest& request);
   void merge_rsp(std::vector<example::RankStruct*>* parts, example::RankRequest& request);
 
+  void bvar_test();
+
   example::RankStruct* _rank_struct;
   example::VisitInfo* _visit_info;
   example::QueryInfo* _query_info;
