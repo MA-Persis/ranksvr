@@ -23,6 +23,7 @@
 #include <brpc/nshead_service.h>
 #include <brpc/policy/snappy_compress.h>
 
+#include "base/bvar_record.h"
 #include "concurrent/rank_thread.h"
 #include "conf/rs_conf.h"
 #include "main/rs_service.h"
@@ -36,6 +37,7 @@ DEFINE_string(listen_addr, "", "Server listen address, may be IPV4/IPV6/UDS."
 DEFINE_int32(idle_timeout_s, -1, "Connection will be closed if there is no "
              "read/write operations during the last `idle_timeout_s'");
 DEFINE_int32(session_local_num, 20, "session local num");
+DEFINE_int32(brpc_dummy_port, 11102, "dummpy port of rpc server");
 
 namespace example {
 class RankService0 : public brpc::NsheadService {
@@ -64,6 +66,11 @@ public:
             return;
         }
 
+        example::bvar_record_performance("memcache_get_qps", 1);
+        example::mbvar_record_performance({"bucket", "pf"}, "mbvar_memcache_get_qps", 1);
+
+        LOG(INFO) << "mbvar num: " << bvar::FLAGS_bvar_max_dump_multi_dimension_metric_number;
+
         // The purpose of following logs is to help you to understand
         // how clients interact with servers more intuitively. You should 
         // remove these logs in performance-sensitive servers.
@@ -88,6 +95,13 @@ public:
 int main(int argc, char* argv[]) {
     // Parse gflags. We recommend you to use gflags as well.
     google::ParseCommandLineFlags(&argc, &argv, true);
+
+    if (gflags::SetCommandLineOption("bvar_max_dump_multi_dimension_metric_number", "20000").empty()) {
+        LOG(ERROR) << "set max mbvar metric dump number fail";
+        return -1;
+    }
+
+    example::bvar_record();
 
     rs::RsConfig &rsconfig = rs::RsConfig::get_cur_config();
     std::string rs_conf_path = "../conf/rs.conf";

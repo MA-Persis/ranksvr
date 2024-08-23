@@ -109,6 +109,7 @@ set(SERVER_SOURCES
   concurrent/rank_pool.cpp
   conf/rs_conf.cpp
   base/wait_group.cpp
+  base/bvar_record.cpp
   ${PROTO_SRCS}
   ranklib/ranker/ranker.cpp
   ranklib/ranker/rank_adapter.cpp
